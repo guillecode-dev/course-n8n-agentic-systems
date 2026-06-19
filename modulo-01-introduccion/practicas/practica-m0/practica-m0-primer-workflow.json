@@ -1,0 +1,212 @@
+{
+  "name": "Práctica 01 · Webhook + Gemini · Hola Mundo IA",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## PRÁCTICA 01 · Hola Mundo con IA Real\n**Objetivo:** Verificar que el entorno n8n + Google Gemini está 100% funcional.\n\n**Flujo:** `Webhook (entrada)` → `Basic LLM Chain + Gemini (procesamiento)` → `Respond to Webhook (salida)`\n\n**Cómo probar:** Activa el workflow (botón *Active*, arriba a la derecha) y abre esta URL en tu navegador:\n`http://localhost:5678/webhook/hola-mundo-ia?message=Hola, preséntate brevemente`\n\nSi ves un JSON con la respuesta de Gemini → el entorno está 100% operativo.",
+        "height": 150,
+        "width": 1260,
+        "color": 5
+      },
+      "id": "2c2c4235-cf3b-49cd-9c59-0aaeb2a81481",
+      "name": "Sticky Note - Introducción",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### NODO 1 · WEBHOOK TRIGGER\n\nEs la **puerta de entrada** del flujo. Cada vez que alguien accede a la URL configurada, este nodo se activa y pasa los datos al siguiente nodo.\n\n**Método:** `GET` → permite probar directo desde el navegador sin herramientas extra.\n\n**Ruta:** `/hola-mundo-ia`\n\n**Parámetro clave:**\n`?message=tu pregunta aquí`\n\nDentro del flujo, ese texto llega como:\n`{{ $json.query.message }}`\n\n**Modo de respuesta:** `Response Node` → delega el control de la respuesta al nodo *Respond to Webhook* al final del flujo.",
+        "height": 342,
+        "width": 390,
+        "color": 3
+      },
+      "id": "973f9c10-52cb-4937-9e2b-79848517a18d",
+      "name": "Sticky Note - Webhook",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "path": "hola-mundo-ia",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cf6aa600-9de6-497e-9ab3-2704f1e77c80",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        224,
+        192
+      ],
+      "webhookId": "hola-mundo-ia"
+    },
+    {
+      "parameters": {
+        "content": "### NODO 2A · BASIC LLM CHAIN\n\nOrquesta la llamada al modelo de lenguaje. Toma el `prompt` (pregunta del usuario), lo envía al LLM conectado y devuelve la respuesta generada.\n\n**Prompt (campo *text*):** expresión que extrae el parámetro `message` de la URL:\n`{{ $json.query.message }}`\n\nEl resultado queda disponible en el siguiente nodo como:\n`{{ $json.text }}`\n\n**Conexión especial:** El modelo Gemini se conecta por debajo de este nodo mediante el conector `ai_languageModel` (línea punteada).",
+        "height": 402,
+        "width": 310,
+        "color": 4
+      },
+      "id": "974c64d6-98c4-4cc4-b634-bd4c4adb375e",
+      "name": "Sticky Note - LLM Chain",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query.message }}"
+      },
+      "id": "53c3aca4-c465-42c1-a341-5956292fc12f",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### NODO 2B · GOOGLE GEMINI CHAT MODEL\n\nEste sub-nodo define **qué LLM** usará el Basic LLM Chain.\n\n**CONFIGURAR CREDENCIALES (paso obligatorio):**\n1. Haz doble clic en este nodo\n2. En el campo *Credential*, selecciona *Create new credential*\n3. Ingresa tu **Google Gemini API Key**\n4. Guarda y cierra\n\nObtén tu API Key gratuita en:\n`https://aistudio.google.com/app/apikey`\n\n**Modelo:** `gemini-1.5-flash` → rápido, gratuito y más que suficiente para este ejercicio.",
+        "height": 402,
+        "width": 310,
+        "color": 4
+      },
+      "id": "6ea3b859-9b77-4dc0-9750-92b9d1a4183a",
+      "name": "Sticky Note - Gemini",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "cd89cea5-d8d7-4176-aea2-ae4251919822",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        368
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JOMHP2rEcXHw3p6P",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### NODO 3 · RESPOND TO WEBHOOK\n\nCierra el ciclo: devuelve la respuesta al navegador que hizo la petición.\n\n**Formato de respuesta:** `JSON` con 3 campos:\n- `respuesta` → texto generado por Gemini\n- `modelo` → nombre del modelo usado\n- `estado` → confirmación de éxito\n\n**Resultado esperado en el navegador:**\n```json\n{\n  \"respuesta\": \"¡Hola! Soy Gemini...\",\n  \"modelo\": \"Google Gemini 1.5 Flash\",\n  \"estado\": \"OK\"\n}\n```\n\nSi ves esto → práctica completada con éxito.",
+        "height": 390,
+        "width": 330,
+        "color": 6
+      },
+      "id": "2593af2e-e764-4985-9010-2b2984ad11ab",
+      "name": "Sticky Note - Respond",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        976,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { respuesta: $json.text, modelo: 'Google Gemini 2.5 Flash', estado: 'OK' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "77b29dc5-bb8d-4ee1-b153-6deef49cbb2f",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        192
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "08434a19-0a12-46b5-95dc-0b9605f5c08d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "66a157b0ba0811334ab4dee7d258c34810628b9f7d5bbb1e5d045ee6913c5c9a"
+  },
+  "id": "AcH78Rk4WNS5hbKz",
+  "tags": [
+    {
+      "updatedAt": "2026-05-29T00:38:30.201Z",
+      "createdAt": "2026-05-29T00:38:30.201Z",
+      "id": "hw7NvPg3cnUiAkYU",
+      "name": "didáctico"
+    },
+    {
+      "updatedAt": "2026-05-29T00:38:30.211Z",
+      "createdAt": "2026-05-29T00:38:30.211Z",
+      "id": "vwD2amxBonLcnHAy",
+      "name": "practica-01"
+    }
+  ]
+}
